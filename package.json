@@ -1,6 +1,6 @@
 {
   "name": "nph-release-rehearsal",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "A stand-in package for rehearsing a release process: versions, channels, downloads and provenance.",
   "license": "Apache-2.0",
   "type": "module",
