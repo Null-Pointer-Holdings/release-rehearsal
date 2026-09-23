@@ -1,0 +1,14 @@
+{
+  "name": "nph-release-rehearsal",
+  "version": "0.0.0",
+  "description": "A stand-in package for rehearsing a release process: versions, channels, downloads and provenance.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": { "rehearsal": "bin/rehearsal.mjs" },
+  "files": ["bin", "install.sh", "README.md"],
+  "engines": { "node": ">=22.13" },
+  "repository": { "type": "git", "url": "git+https://github.com/Null-Pointer-Holdings/release-rehearsal.git" },
+  "scripts": { "test": "node --test", "changeset": "changeset" },
+  "devDependencies": { "@changesets/cli": "^3.0.2" },
+  "packageManager": "pnpm@10.29.3"
+}

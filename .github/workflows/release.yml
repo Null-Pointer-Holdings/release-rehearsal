@@ -1,0 +1,61 @@
+name: Release
+
+# The same release as the real one, on a stand-in. On main: while changesets are waiting, keep a
+# "Version packages" pull request up to date. Merging it bumps the version and changelog; this then
+# publishes to npm with provenance (npm trusted publishing: no token stored here), tags the release,
+# and attaches the installer to a GitHub release.
+
+on:
+  push:
+    branches: [main]
+
+concurrency: release
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - id: changesets
+        uses: changesets/action@v1
+        with:
+          version: pnpm changeset version
+          title: Version packages
+          commit: Version packages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Nothing waiting and this version isn't on npm yet: publish it.
+      - name: Publish
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "nph-release-rehearsal@$VERSION" version >/dev/null 2>&1; then
+            echo "nph-release-rehearsal $VERSION is already published."
+            exit 0
+          fi
+          TAG=latest
+          case "$VERSION" in *-*) TAG=next ;; esac
+          npm publish --provenance --access public --tag "$TAG"
+          git tag "v$VERSION"
+          git push origin "v$VERSION"
+          # Betas are pre-releases: "latest" stays the newest stable one, so
+          # releases/latest/download/install.sh always installs stable.
+          awk -v v="$VERSION" '$0 ~ "^## "v"$" { on = 1; next } /^## / { if (on) exit } on' CHANGELOG.md > release-notes.md || true
+          PRE=""
+          case "$VERSION" in *-*) PRE="--prerelease" ;; esac
+          gh release create "v$VERSION" install.sh --title "Rehearsal $VERSION" --notes-file release-notes.md $PRE
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
